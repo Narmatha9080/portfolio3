@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Narmatha · AI ocean + interactive skills</title>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+      /* ----- GLOBAL / RESET – black elegance ----- */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", "Roboto", system-ui, sans-serif;
+      }
+
+      body {
+        overflow: hidden;
+        background: #000000;
+        color: white;
+      }
+
+      /* ----- BLINKING STARS ----- */
+      .stars {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        z-index: -2;
+        pointer-events: none;
+      }
+      .stars::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-image: radial-gradient(white 1.2px, transparent 1px);
+        background-size: 55px 55px;
+        animation: twinkle 4s infinite alternate ease-in-out;
+        opacity: 0.6;
+      }
+      @keyframes twinkle {
+        0% {
+          opacity: 0.4;
+          background-size: 55px 55px;
+        }
+        100% {
+          opacity: 1;
+          background-size: 60px 60px;
+        }
+      }
+
+      /* ----- 3D CANVAS (waves) ----- */
+      #wave-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+        display: block;
+        pointer-events: none;
+      }
+
+      /* ----- NAVBAR – dark ----- */
+      nav {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        background: #0c0c0c;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 40px;
+        z-index: 20;
+        backdrop-filter: blur(2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+        border-bottom: 1px solid #333;
+      }
+      nav h1 {
+        font-size: 1.5rem;
+        letter-spacing: 2px;
+        font-weight: 400;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #eee;
+      }
+      nav h1 span {
+        font-size: 1.8rem;
+      }
+      nav ul {
+        list-style: none;
+        display: flex;
+        gap: 28px;
+      }
+      nav ul li {
+        cursor: pointer;
+        transition: 0.2s;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        border-radius: 30px;
+        color: #ddd;
+      }
+      nav ul li:hover {
+        background: #2a2a2a;
+        color: #9effff;
+        transform: scale(1.05);
+      }
+
+      /* ----- MAIN SECTIONS – cards light black background ----- */
+      .section {
+        position: absolute;
+        top: 95px;
+        left: 0;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+        padding: 20px 18px 40px;
+        z-index: 5;
+        overflow-y: auto;
+        max-height: calc(100vh - 95px);
+        scrollbar-width: thin;
+        scrollbar-color: #555 #111;
+      }
+      .section::-webkit-scrollbar {
+        width: 6px;
+      }
+      .section::-webkit-scrollbar-track {
+        background: #111;
+      }
+      .section::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 10px;
+      }
+
+      /* info cards – standard (used by other pages) */
+      .info-box {
+        background: #1a1a1a;
+        padding: 20px 28px;
+        border-radius: 30px;
+        width: 90%;
+        max-width: 650px;
+        border: 2px solid transparent;
+        transition: 0.3s ease-out;
+        cursor: pointer;
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(1px);
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        text-align: left;
+      }
+      .info-icon {
+        font-size: 2rem;
+        min-width: 50px;
+        filter: drop-shadow(0 0 5px #888);
+      }
+      .info-content {
+        flex: 1;
+        color: #f0f0f0;
+      }
+      .info-box:hover {
+        border: 2px solid #00cfff;
+        box-shadow: 0 0 30px #00cfff, 0 0 40px #4ae6ff;
+        animation: softBlink 0.9s infinite alternate;
+      }
+      @keyframes softBlink {
+        0% {
+          border-color: #00cfff;
+          box-shadow: 0 0 15px #00cfff;
+        }
+        100% {
+          border-color: #ffffff;
+          box-shadow: 0 0 40px #ffffff;
+        }
+      }
+      .highlight {
+        font-weight: 700;
+        color: #aaffff;
+        text-shadow: 0 0 8px cyan;
+      }
+      hr {
+        border: 0.5px solid #444;
+        margin: 8px 0;
+      }
+
+      /* ----- NEW SKILLS PAGE (page2) – big left card + 3 inner boxes + detail area ----- */
+      .skills-main-wrapper {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 30px;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        flex-wrap: wrap;
+      }
+
+      /* big left card – light black */
+      .big-skill-card {
+        background: #1a1a1a;
+        border-radius: 48px;
+        padding: 30px 20px;
+        width: 380px;
+        min-width: 300px;
+        border: 2px solid #2c2c2c;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+
+      /* three inner boxes – clickable */
+      .inner-skill-box {
+        background: #2a2a2a;
+        border-radius: 36px;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        border: 2px solid #3d3d3d;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.5);
+      }
+      .inner-skill-box:hover {
+        border-color: #00cfff;
+        transform: translateX(8px) scale(1.02);
+        background: #1f1f2e;
+      }
+      .inner-skill-box.active-category {
+        border-color: cyan;
+        box-shadow: 0 0 30px cyan;
+        background: #1a1a2a;
+      }
+      .inner-icon {
+        font-size: 3rem;
+        filter: drop-shadow(0 0 8px cyan);
+        min-width: 70px;
+        text-align: center;
+      }
+      .inner-title {
+        font-size: 1.8rem;
+        font-weight: 400;
+        letter-spacing: 1px;
+        color: #f0f0f0;
+      }
+
+      /* right side – skill detail panel with moving icons */
+      .skill-detail-panel {
+        background: #1a1a1a;
+        border-radius: 48px;
+        padding: 28px 30px;
+        width: 450px;
+        min-width: 300px;
+        border: 2px solid #00cfff;
+        box-shadow: 0 0 40px rgba(0, 255, 255, 0.2);
+        backdrop-filter: blur(4px);
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .detail-header {
+        font-size: 2rem;
+        border-bottom: 2px solid cyan;
+        padding-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #fff;
+        text-shadow: 0 0 15px cyan;
+      }
+      .detail-items {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .skill-item {
+        background: #262626;
+        border-radius: 40px;
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        font-size: 1.2rem;
+        border: 1px solid #3f3f3f;
+        transition: all 0.15s;
+        color: #ddd;
+        box-shadow: 0 4px 8px black;
+      }
+      .skill-item i {
+        font-size: 2rem;
+        width: 40px;
+        text-align: center;
+        filter: drop-shadow(0 0 6px cyan);
+      }
+      .skill-item span {
+        flex: 1;
+        text-align: left;
+      }
+
+      /* moving icons animation (subtle shift) */
+      .moving-icon {
+        display: inline-block;
+        animation: floatMove 3s infinite alternate ease-in-out;
+      }
+      @keyframes floatMove {
+        0% {
+          transform: translateY(0px) rotate(0deg);
+        }
+        100% {
+          transform: translateY(-6px) rotate(3deg);
+        }
+      }
+
+      /* other pages unchanged from original, but keep them consistent */
+      .skill-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #2a2a2a;
+        padding: 8px 18px;
+        border-radius: 40px;
+        margin: 6px 6px 0 0;
+        font-size: 0.95rem;
+        border: 1px solid #555;
+        color: #eee;
+      }
+      .project-canvas-wrap {
+        margin-top: 15px;
+        width: 100%;
+        height: 100px;
+        background: #111;
+        border-radius: 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .mini-canvas {
+        width: 100%;
+        height: 100px;
+        border-radius: 20px;
+        background: #0a0a0a;
+      }
+      .chat-container {
+        width: 100%;
+        max-width: 650px;
+        background: #1a1a1a;
+        border-radius: 40px;
+        padding: 25px;
+      }
+      .chat-messages {
+        background: #222;
+        border-radius: 25px;
+        padding: 15px;
+        min-height: 180px;
+        max-height: 250px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        border: 1px solid #444;
+      }
+      .chat-bubble {
+        background: #2a2a2a;
+        margin: 10px 0;
+        padding: 10px 18px;
+        border-radius: 28px;
+        max-width: 85%;
+        clear: both;
+        color: #f0f0f0;
+      }
+      .chat-bubble.user {
+        background: #006680;
+        float: right;
+        border-bottom-right-radius: 4px;
+      }
+      .chat-bubble.bot {
+        background: #333;
+        float: left;
+        border-bottom-left-radius: 4px;
+      }
+      .chat-input-area {
+        display: flex;
+        gap: 8px;
+      }
+      #chatInput {
+        flex: 1;
+        background: #222;
+        border: 1px solid #555;
+        border-radius: 50px;
+        padding: 12px 20px;
+        color: white;
+      }
+      #sendBtn {
+        background: #008bbd;
+        border: none;
+        border-radius: 50px;
+        padding: 0 25px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      #sendBtn:hover {
+        background: #00b8ff;
+        box-shadow: 0 0 20px cyan;
+      }
+      .question-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+        justify-content: center;
+      }
+      .chip {
+        background: #2a2a2a;
+        padding: 8px 15px;
+        border-radius: 40px;
+        border: 1px solid #555;
+        cursor: pointer;
+        color: #ddd;
+      }
+      .chip:hover {
+        background: #444;
+        border-color: cyan;
+      }
+      .typing-container {
+        font-size: 3rem;
+        font-weight: bold;
+        color: white;
+        text-shadow: 0 0 15px cyan, 0 0 30px #0077ff;
+        background: rgba(20, 20, 20, 0.6);
+        backdrop-filter: blur(8px);
+        padding: 30px 60px;
+        border-radius: 80px;
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        max-width: 90vw;
+        text-align: center;
+      }
+
+      /* rating page */
+      #page6 {
+        position: relative;
+        overflow: hidden;
+      }
+      .rating-header {
+        font-size: 2.5rem;
+        background: rgba(10, 10, 10, 0.7);
+        backdrop-filter: blur(5px);
+        padding: 20px 40px;
+        border-radius: 60px;
+        border: 1px solid cyan;
+        margin-bottom: 20px;
+        color: white;
+      }
+      .stars-container {
+        display: flex;
+        gap: 30px;
+        justify-content: center;
+        margin: 30px 0;
+      }
+      .star {
+        font-size: 5rem;
+        cursor: pointer;
+        color: #ffe484;
+        text-shadow: 0 0 25px gold;
+        transition: 0.2s;
+      }
+      .star:hover {
+        transform: scale(1.2);
+        color: #ffffaa;
+        text-shadow: 0 0 40px cyan;
+      }
+      #emoji-rain-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10;
+      }
+      .rating-header,
+      .stars-container {
+        position: relative;
+        z-index: 20;
+      }
+
+      @media (max-width: 900px) {
+        .skills-main-wrapper {
+          flex-direction: column;
+          align-items: center;
+        }
+        .big-skill-card {
+          width: 90%;
+        }
+        .skill-detail-panel {
+          width: 90%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- fixed stars -->
+    <div class="stars"></div>
+
+    <!-- navigation -->
+    <nav>
+      <h1><span>🌊</span> Narmatha.M</h1>
+      <ul>
+        <li onclick="showPage(0)">🏠 Home</li>
+        <li onclick="showPage(1)">👤 About</li>
+        <li onclick="showPage(2)">⚙️ Skills</li>
+        <li onclick="showPage(3)">📁 Projects</li>
+        <li onclick="showPage(4)">💼 Experience</li>
+        <li onclick="showPage(5)">💬 Chat</li>
+        <li onclick="showPage(6)">⭐ Rate</li>
+      </ul>
+    </nav>
+
+    <!-- PAGE 0 HOME - Updated without blinking cursor -->
+    <div class="section" id="page0" style="display: none">
+      <div class="typing-container"><span id="typing-text"></span></div>
+    </div>
+
+    <!-- PAGE 1 ABOUT (unchanged) -->
+    <div class="section" id="page1" style="display: none">
+      <div class="info-box">
+        <span class="info-icon">👩‍🎓</span>
+        <div class="info-content">
+          <h2 class="highlight">Narmatha Murugesan</h2>
+        </div>
+      </div>
+      <div class="info-box">
+        <span class="info-icon">📘</span>
+        <div class="info-content">
+          <h3>B.E. Computer Science Engineering (CSE)</h3>
+          <p>Pre-Final Year Student</p>
+        </div>
+      </div>
+      <div class="info-box">
+        <span class="info-icon">📋</span>
+        <div class="info-content">
+          <p>
+            I am a CSE pre-final year student who is adaptable, responsible, and
+            focused on learning. I complete my work with sincerity and enjoy
+            improving my skills.
+          </p>
+        </div>
+      </div>
+      <div class="info-box">
+        <span class="info-icon">📧</span>
+        <div class="info-content">
+          <p class="highlight">mnarmatha3327@gmail.com</p>
+        </div>
+      </div>
+      <div class="info-box">
+        <span class="info-icon">📍</span>
+        <div class="info-content">
+          <p>
+            Kottaimedu, Sarakapillaiyur (PO), Kadayampatti (TK), Salem District,
+            India
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 2 SKILLS – NEW INTERACTIVE LAYOUT -->
+    <div class="section" id="page2" style="display: none">
+      <div class="skills-main-wrapper">
+        <!-- big left card with three inner boxes -->
+        <div class="big-skill-card">
+          <div
+            class="inner-skill-box"
+            id="catProgramming"
+            onclick="activateSkillCategory('programming')"
+          >
+            <span class="inner-icon moving-icon">👩‍💻</span>
+            <span class="inner-title">Programming</span>
+          </div>
+          <div
+            class="inner-skill-box"
+            id="catWeb"
+            onclick="activateSkillCategory('web')"
+          >
+            <span class="inner-icon moving-icon">🌐</span>
+            <span class="inner-title">Web & Tools</span>
+          </div>
+          <div
+            class="inner-skill-box"
+            id="catCore"
+            onclick="activateSkillCategory('core')"
+          >
+            <span class="inner-icon moving-icon">📊</span>
+            <span class="inner-title">Core Concepts</span>
+          </div>
+        </div>
+
+        <!-- right side dynamic detail panel -->
+        <div class="skill-detail-panel" id="skillDetailPanel">
+          <div class="detail-header" id="detailHeader">
+            <span class="moving-icon" id="headerIcon">👩‍💻</span>
+            <span id="headerTitle">Programming</span>
+          </div>
+          <div class="detail-items" id="detailItems">
+            <!-- filled by javascript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 3 PROJECTS (unchanged) -->
+    <div class="section" id="page3" style="display: none">
+      <div
+        class="info-box"
+        style="flex-direction: column; align-items: stretch"
+      >
+        <div style="display: flex; gap: 15px">
+          <span class="info-icon">📈</span>
+          <div><h3>Stock Price Prediction System</h3></div>
+        </div>
+        <p>
+          Developed a basic stock prediction model using historical data. Data
+          analysis, trend exploration, programming.
+        </p>
+        <p>
+          <span class="highlight">Technologies:</span> Python, Excel, basic ML
+          concepts.
+        </p>
+        <div class="project-canvas-wrap">
+          <canvas id="stockCanvas" class="mini-canvas"></canvas>
+        </div>
+      </div>
+      <div
+        class="info-box"
+        style="flex-direction: column; align-items: stretch"
+      >
+        <div style="display: flex; gap: 15px">
+          <span class="info-icon">📡</span>
+          <div><h3>RFID Lab Attendance System</h3></div>
+        </div>
+        <p>
+          RFID-based automated attendance to reduce errors. Hardware-software
+          integration, Arduino, database.
+        </p>
+        <p>
+          <span class="highlight">Technologies:</span> Arduino, Embedded C, Java
+          (DB).
+        </p>
+        <div class="project-canvas-wrap">
+          <canvas id="rfidCanvas" class="mini-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 4 EXPERIENCE (unchanged) -->
+    <div class="section" id="page4" style="display: none">
+      <div class="info-box">
+        <span class="info-icon">🎓</span>
+        <div class="info-content">
+          <h3>English Laboratory / Placement Support Attendant</h3>
+          <p>Government College of Engineering, Salem</p>
+          <hr />
+          <p>
+            Assisted in English lab & placement activities · Helped students,
+            lab operations · Developed communication & coordination skills.
+          </p>
+        </div>
+      </div>
+      <div class="info-box">
+        <span class="info-icon">⏯️</span>
+        <div class="info-content">
+          <p>
+            <i
+              >“Student speaking with headset, language software” – professional
+              lab environment</i
+            >
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 5 CHAT (unchanged) -->
+    <div class="section" id="page5" style="display: none">
+      <div class="chat-container">
+        <div style="font-size: 1.7rem; margin-bottom: 10px">
+          💬 <span class="highlight">Ask me anything</span>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-bubble bot">
+            Hi! I'm Narmatha's AI assistant. Ask about education, skills,
+            projects, or tips.
+          </div>
+          <div class="chat-bubble bot">
+            Try a question below or type your own!
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <input type="text" id="chatInput" placeholder="Ask me ..." /><button
+            id="sendBtn"
+          >
+            ➤
+          </button>
+        </div>
+        <div class="question-chips">
+          <span class="chip" onclick="askQuestion('education')"
+            >📘 Education</span
+          >
+          <span class="chip" onclick="askQuestion('skills')">⚙️ Skills</span>
+          <span class="chip" onclick="askQuestion('projects')"
+            >📁 Projects</span
+          >
+          <span class="chip" onclick="askQuestion('about')">🌟 About</span>
+          <span class="chip" onclick="askQuestion('tips')">💡 Tips</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 6 RATING (unchanged) -->
+    <div class="section" id="page6" style="display: none">
+      <canvas id="emoji-rain-canvas"></canvas>
+      <div class="rating-header" id="ratingTyping"></div>
+      <div class="stars-container">
+        <span class="star" data-rating="1" onclick="triggerRain(1)">★</span>
+        <span class="star" data-rating="2" onclick="triggerRain(2)">★</span>
+        <span class="star" data-rating="3" onclick="triggerRain(3)">★</span>
+        <span class="star" data-rating="4" onclick="triggerRain(4)">★</span>
+        <span class="star" data-rating="5" onclick="triggerRain(5)">★</span>
+      </div>
+      <div style="color: #aaa; margin-top: 10px">
+        (tap stars for emoji rain)
+      </div>
+    </div>
+
+    <script>
+      // ---------- GLOBAL page system + typing (updated - removed cursor) ----------
+      let typingInterval = null;
+      let ratingTypingInterval = null;
+
+      function showPage(page) {
+        document.getElementById("page0").style.display = "none";
+        document.getElementById("page1").style.display = "none";
+        document.getElementById("page2").style.display = "none";
+        document.getElementById("page3").style.display = "none";
+        document.getElementById("page4").style.display = "none";
+        document.getElementById("page5").style.display = "none";
+        document.getElementById("page6").style.display = "none";
+        if (page !== 0 && typingInterval) {
+          clearInterval(typingInterval);
+          typingInterval = null;
+        }
+        if (page !== 6 && ratingTypingInterval) {
+          clearInterval(ratingTypingInterval);
+          ratingTypingInterval = null;
+        }
+        if (page !== 6) clearRain(); // stop emoji rain
+
+        setTimeout(() => {
+          const active = document.getElementById("page" + page);
+          if (active) {
+            active.style.display = "flex";
+            if (page === 0) startTyping();
+            if (page === 6) {
+              startRatingTyping();
+              initRainCanvas();
+            }
+            if (page === 2) {
+              initSkillPage();
+            } // initialize active category if needed
+          }
+        }, 30);
+      }
+
+      function startTyping() {
+        const textEl = document.getElementById("typing-text");
+        if (!textEl) return;
+        if (typingInterval) clearInterval(typingInterval);
+        textEl.innerHTML = "";
+        const fullText = "Welcome to Narmatha portfolio";
+        let i = 0;
+        typingInterval = setInterval(() => {
+          if (i < fullText.length) {
+            textEl.innerHTML += fullText.charAt(i);
+            i++;
+          } else {
+            clearInterval(typingInterval);
+            typingInterval = null;
+          }
+        }, 100);
+      }
+
+      function startRatingTyping() {
+        const headerEl = document.getElementById("ratingTyping");
+        if (!headerEl) return;
+        if (ratingTypingInterval) clearInterval(ratingTypingInterval);
+        headerEl.innerHTML = "";
+        const fullText = "⭐ Rating us for Narmatha portfolio ⭐";
+        let i = 0;
+        ratingTypingInterval = setInterval(() => {
+          if (i < fullText.length) {
+            headerEl.innerHTML += fullText.charAt(i);
+            i++;
+          } else {
+            clearInterval(ratingTypingInterval);
+            ratingTypingInterval = null;
+          }
+        }, 100);
+      }
+
+      // ---------- SKILLS PAGE INTERACTIVE ----------
+      const skillCategories = {
+        programming: {
+          icon: "👩‍💻",
+          title: "Programming",
+          items: [
+            { icon: "☕", name: "Java Programming" },
+            { icon: "⚙️", name: "C Programming" },
+            { icon: "🧬", name: "Object-Oriented Programming (OOP)" },
+            { icon: "🗂️", name: "Data Structures (Basic Level)" },
+            { icon: "🧩", name: "Problem Solving Algorithms" },
+          ],
+        },
+        web: {
+          icon: "🌐",
+          title: "Web & Tools",
+          items: [
+            { icon: "🌐", name: "HTML5 & CSS3" },
+            { icon: "📱", name: "Responsive Web Design" },
+            { icon: "🐙", name: "Git & GitHub Basics" },
+            { icon: "💻", name: "VS Code Environment Setup" },
+            { icon: "🎨", name: "Canva Design Basics" },
+          ],
+        },
+        core: {
+          icon: "📊",
+          title: "Core Concepts",
+          items: [
+            { icon: "🗄️", name: "Database Fundamentals" },
+            { icon: "🔤", name: "SQL Basics" },
+            { icon: "🌐", name: "Computer Networks (Basics)" },
+            { icon: "⚙️", name: "Operating Systems (Basics)" },
+          ],
+        },
+      };
+
+      function initSkillPage() {
+        // set default active (programming) if nothing active
+        if (!document.querySelector(".inner-skill-box.active-category")) {
+          activateSkillCategory("programming");
+        }
+      }
+
+      function activateSkillCategory(catKey) {
+        // remove active class from all inner boxes
+        document
+          .getElementById("catProgramming")
+          .classList.remove("active-category");
+        document.getElementById("catWeb").classList.remove("active-category");
+        document.getElementById("catCore").classList.remove("active-category");
+        // add active to selected
+        if (catKey === "programming")
+          document
+            .getElementById("catProgramming")
+            .classList.add("active-category");
+        if (catKey === "web")
+          document.getElementById("catWeb").classList.add("active-category");
+        if (catKey === "core")
+          document.getElementById("catCore").classList.add("active-category");
+
+        // update detail panel
+        const cat = skillCategories[catKey];
+        document.getElementById("headerIcon").innerHTML = cat.icon;
+        document.getElementById("headerTitle").innerText = cat.title;
+
+        const itemsContainer = document.getElementById("detailItems");
+        itemsContainer.innerHTML = "";
+        cat.items.forEach((item) => {
+          const div = document.createElement("div");
+          div.className = "skill-item";
+          div.innerHTML = `<i class="moving-icon">${item.icon}</i><span>${item.name}</span>`;
+          itemsContainer.appendChild(div);
+        });
+      }
+
+      window.activateSkillCategory = activateSkillCategory; // global for onclick
+
+      // ----- THREE.JS OCEAN WAVE (identical original) -----
+      let scene = new THREE.Scene();
+      let camera = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      let renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      const canvasElem = renderer.domElement;
+      canvasElem.id = "wave-canvas";
+      canvasElem.style.position = "fixed";
+      canvasElem.style.top = "0";
+      canvasElem.style.left = "0";
+      canvasElem.style.zIndex = "-1";
+      document.body.appendChild(canvasElem);
+
+      camera.position.set(0, 2, 8);
+      camera.lookAt(0, 0, 0);
+      let geometry = new THREE.PlaneGeometry(22, 22, 180, 180);
+      let material = new THREE.MeshPhongMaterial({
+        color: 0x1b4b6c,
+        emissive: 0x102b3a,
+        shininess: 75,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.95,
+      });
+      let plane = new THREE.Mesh(geometry, material);
+      plane.rotation.x = -Math.PI / 2.2;
+      plane.position.y = -0.5;
+      scene.add(plane);
+
+      let light1 = new THREE.PointLight(0xffffff, 1.2);
+      light1.position.set(5, 8, 7);
+      scene.add(light1);
+      let light2 = new THREE.PointLight(0x557a9a, 1);
+      light2.position.set(-5, 4, 5);
+      scene.add(light2);
+      let ambient = new THREE.AmbientLight(0x404060);
+      scene.add(ambient);
+      let hemiLight = new THREE.HemisphereLight(0x446688, 0x223344, 1);
+      scene.add(hemiLight);
+      let clock = new THREE.Clock();
+
+      function animateWave() {
+        requestAnimationFrame(animateWave);
+        let delta = clock.getDelta();
+        let elapsed = performance.now() / 700;
+        let positions = plane.geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+          let x = positions.getX(i);
+          let y = positions.getY(i);
+          let wave1 = Math.sin(x * 1.8 + elapsed * 2.5) * 0.3;
+          let wave2 = Math.cos(y * 1.5 + elapsed * 2.0) * 0.2;
+          let wave3 = Math.sin(x * 3.0 + elapsed * 1.2) * 0.15;
+          positions.setZ(i, wave1 + wave2 + wave3);
+        }
+        positions.needsUpdate = true;
+        renderer.render(scene, camera);
+      }
+      animateWave();
+
+      window.addEventListener("mousemove", (e) => {
+        let mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+        let mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+        camera.rotation.y = mouseX * 0.4;
+        camera.rotation.x = mouseY * 0.2;
+        camera.position.z = 8 + Math.abs(mouseY) * 1;
+      });
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // ---------- MINI CANVAS animations (unchanged) ----------
+      function initStockCanvas() {
+        const canvas = document.getElementById("stockCanvas");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        function drawStock() {
+          if (!canvas.isConnected) return;
+          let w = canvas.clientWidth || 300,
+            h = canvas.clientHeight || 100;
+          canvas.width = w;
+          canvas.height = h;
+          ctx.clearRect(0, 0, w, h);
+          ctx.strokeStyle = "#00fff9";
+          ctx.lineWidth = 2.5;
+          ctx.shadowColor = "#00cfff";
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          for (let i = 0; i <= w; i += 6) {
+            let x = i;
+            let y =
+              h / 2 +
+              Math.sin(i * 0.02 + Date.now() / 300) * 20 +
+              Math.cos(i * 0.01 + Date.now() / 200) * 12;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+          requestAnimationFrame(drawStock);
+        }
+        drawStock();
+      }
+      function initRfidCanvas() {
+        const canvas = document.getElementById("rfidCanvas");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        function drawRFID() {
+          if (!canvas.isConnected) return;
+          let w = canvas.clientWidth || 300,
+            h = canvas.clientHeight || 100;
+          canvas.width = w;
+          canvas.height = h;
+          ctx.clearRect(0, 0, w, h);
+          ctx.fillStyle = "#00b8a0";
+          ctx.shadowColor = "#00e0ff";
+          ctx.shadowBlur = 15;
+          for (let i = 0; i < 5; i++) {
+            let rad = 15 + i * 8 + Math.sin(Date.now() / 300 + i) * 6;
+            ctx.beginPath();
+            ctx.arc(w / 4 + i * 45, h / 2, rad, 0, 2 * Math.PI);
+            ctx.strokeStyle = i % 2 ? "#00ffff" : "#aaffff";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          requestAnimationFrame(drawRFID);
+        }
+        drawRFID();
+      }
+
+      // ---------- EMOJI RAIN (rating) ----------
+      let particles = [],
+        rainCanvas,
+        ctxRain,
+        rainAnimation = null;
+      const celebrationEmojis = [
+        "🎉",
+        "🎊",
+        "✨",
+        "🎈",
+        "🎀",
+        "💥",
+        "🌟",
+        "⭐",
+        "🎇",
+        "🌈",
+      ];
+      const emojiMap = { 1: "😢", 2: "😕", 3: "😌", 4: "😏", 5: "😂" };
+      function initRainCanvas() {
+        rainCanvas = document.getElementById("emoji-rain-canvas");
+        if (!rainCanvas) return;
+        ctxRain = rainCanvas.getContext("2d");
+        function resizeRainCanvas() {
+          const container = document.getElementById("page6");
+          if (!container) return;
+          rainCanvas.width = container.clientWidth;
+          rainCanvas.height = container.clientHeight;
+        }
+        window.addEventListener("resize", resizeRainCanvas);
+        setTimeout(resizeRainCanvas, 50);
+      }
+      function drawRain() {
+        if (!ctxRain || !rainCanvas) return;
+        ctxRain.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+        for (let i = particles.length - 1; i >= 0; i--) {
+          let p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.25;
+          p.opacity *= 0.995;
+          p.life--;
+          if (p.y > rainCanvas.height + 30 || p.life <= 0 || p.opacity < 0.02) {
+            particles.splice(i, 1);
+            continue;
+          }
+          ctxRain.font = `${p.size}px 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif`;
+          ctxRain.textAlign = "center";
+          ctxRain.textBaseline = "middle";
+          ctxRain.globalAlpha = p.opacity;
+          ctxRain.fillText(p.emoji, p.x, p.y);
+        }
+        rainAnimation = requestAnimationFrame(drawRain);
+      }
+      function triggerRain(rating) {
+        const emoji = emojiMap[rating] || "⭐";
+        const container = document.getElementById("page6");
+        if (!container || !rainCanvas) return;
+        particles = [];
+        rainCanvas.width = container.clientWidth;
+        rainCanvas.height = container.clientHeight;
+        let total = rating === 5 ? 120 : 70;
+        for (let i = 0; i < total; i++) {
+          let useEmoji =
+            rating === 5 && Math.random() > 0.5
+              ? celebrationEmojis[
+                  Math.floor(Math.random() * celebrationEmojis.length)
+                ]
+              : emoji;
+          particles.push({
+            x: Math.random() * rainCanvas.width,
+            y: Math.random() * rainCanvas.height * 0.9 - 50,
+            vx: (Math.random() - 0.5) * 1.8,
+            vy: Math.random() * 4 + 3,
+            emoji: useEmoji,
+            size: 20 + Math.floor(Math.random() * 28),
+            opacity: 0.7 + Math.random() * 0.5,
+            life: 150 + Math.random() * 120,
+          });
+        }
+        if (!rainAnimation) drawRain();
+      }
+      function clearRain() {
+        particles = [];
+        if (rainAnimation) {
+          cancelAnimationFrame(rainAnimation);
+          rainAnimation = null;
+        }
+        if (ctxRain && rainCanvas)
+          ctxRain.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+      }
+      window.triggerRain = triggerRain;
+      window.askQuestion = function (topic) {
+        const answers = {
+          education: "🎓 Government College... B.E. CSE",
+          skills: "⚙️ Programming, Web, Core...",
+          projects: "📁 Stock & RFID projects",
+          about: "🌟 dedicated CSE student",
+          tips: "💡 continuous learning",
+        };
+        addMessage(topic + "?", "user");
+        addMessage(answers[topic] || answers.default, "bot");
+      };
+      function addMessage(text, sender) {
+        let m = document.getElementById("chatMessages");
+        let b = document.createElement("div");
+        b.classList.add("chat-bubble", sender);
+        b.innerText = text;
+        m.appendChild(b);
+        m.scrollTop = m.scrollHeight;
+      }
+      document.getElementById("sendBtn")?.addEventListener("click", () => {
+        let i = document.getElementById("chatInput");
+        let q = i.value.trim();
+        if (!q) return;
+        addMessage(q, "user");
+        addMessage("Thanks for your message! (demo reply)", "bot");
+        i.value = "";
+      });
+      document
+        .getElementById("chatInput")
+        ?.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") document.getElementById("sendBtn").click();
+        });
+
+      window.addEventListener("load", () => {
+        initStockCanvas();
+        initRfidCanvas();
+        initRainCanvas();
+        showPage(0);
+      });
+      window.showPage = showPage; // override global
+    </script>
+  </body>
+</html>
